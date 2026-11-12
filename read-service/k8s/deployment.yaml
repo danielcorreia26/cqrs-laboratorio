@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: read-service
+  namespace: cqrs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: read-service
+  template:
+    metadata:
+      labels:
+        app: read-service
+    spec:
+      containers:
+        - name: read-service
+          image: read-service:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://host.minikube.internal:5433/cqrs_read_db"
+
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cqrs-db-secret
+                  key: DB_USERNAME
+
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cqrs-db-secret
+                  key: DB_PASSWORD
+
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "host.minikube.internal:39092"

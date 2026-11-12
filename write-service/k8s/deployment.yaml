@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: write-service
+  namespace: cqrs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: write-service
+  template:
+    metadata:
+      labels:
+        app: write-service
+    spec:
+      containers:
+        - name: write-service
+          image: write-service:1.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8081
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://host.minikube.internal:5433/cqrs_write_db"
+
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: cqrs-db-secret
+                  key: DB_USERNAME
+
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cqrs-db-secret
+                  key: DB_PASSWORD
+
+            - name: SPRING_KAFKA_BOOTSTRAP_SERVERS
+              value: "host.minikube.internal:39092"
