@@ -27,5 +27,16 @@ services:
       - -c
       - max_wal_senders=10
 
+  mongodb:
+    image: mongo:8.0
+    container_name: cqrs-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - cqrs_mongodb_data:/data/db
+
 volumes:
   cqrs_postgres_data:
+  cqrs_mongodb_data:
+
