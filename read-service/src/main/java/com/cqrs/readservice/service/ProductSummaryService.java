@@ -1,38 +1,36 @@
 package com.cqrs.readservice.service;
 
-import com.cqrs.readservice.entity.ProductSummary;
+import com.cqrs.readservice.document.ProductSummaryDocument;
 import com.cqrs.readservice.enums.PriceCategory;
-import com.cqrs.readservice.repository.ProductSummaryRepository;
+import com.cqrs.readservice.repository.ProductSummaryMongoRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
 @Service
 public class ProductSummaryService {
 
-    private final ProductSummaryRepository productSummaryRepository;
+    private final ProductSummaryMongoRepository productSummaryMongoRepository;
 
     public ProductSummaryService(
-            ProductSummaryRepository productSummaryRepository) {
-        this.productSummaryRepository = productSummaryRepository;
+            ProductSummaryMongoRepository productSummaryMongoRepository) {
+        this.productSummaryMongoRepository = productSummaryMongoRepository;
     }
 
-    @Transactional
     public void createOrUpdate(Long id, String name, BigDecimal price) {
         PriceCategory category = PriceCategory.from(price);
-        ProductSummary summary = new ProductSummary(
-                id,
+
+        ProductSummaryDocument summary = new ProductSummaryDocument(
+                String.valueOf(id),
                 name,
                 price,
                 category.name()
         );
 
-        productSummaryRepository.save(summary);
+        productSummaryMongoRepository.save(summary);
     }
 
-    @Transactional
     public void delete(Long id) {
-        productSummaryRepository.deleteById(id);
+        productSummaryMongoRepository.deleteById(String.valueOf(id));
     }
 }

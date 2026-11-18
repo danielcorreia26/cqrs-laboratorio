@@ -1,11 +1,10 @@
 package com.cqrs.readservice.kafka;
 
-import com.cqrs.readservice.entity.Product;
-import com.cqrs.readservice.repository.ProductRepository;
+import com.cqrs.readservice.document.ProductDocument;
+import com.cqrs.readservice.repository.ProductMongoRepository;
 import com.cqrs.readservice.service.ProductSummaryService;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -14,16 +13,15 @@ import java.math.BigDecimal;
 @Component
 public class DebeziumProductConsumer {
 
-    private final ProductRepository productRepository;
+    private final ProductMongoRepository productMongoRepository;
     private final ProductSummaryService productSummaryService;
     private final ObjectMapper objectMapper;
 
     public DebeziumProductConsumer(
-            ProductRepository productRepository,
+            ProductMongoRepository productMongoRepository,
             ProductSummaryService productSummaryService,
             ObjectMapper objectMapper) {
-
-        this.productRepository = productRepository;
+        this.productMongoRepository = productMongoRepository;
         this.productSummaryService = productSummaryService;
         this.objectMapper = objectMapper;
     }
@@ -32,24 +30,25 @@ public class DebeziumProductConsumer {
             topics = "${app.cqrs.topic}",
             containerFactory = "kafkaListenerContainerFactory"
     )
-    @Transactional
     public void consume(String message) throws Exception {
+
         if (message == null || message.isBlank()) {
             return;
         }
 
         JsonNode root = objectMapper.readTree(message);
         JsonNode payload = root.path("payload");
+
         if (payload.isMissingNode() || payload.isNull()) {
             return;
         }
 
         String operation = payload.path("op").asText("");
+
         switch (operation) {
             case "r", "c", "u" -> upsert(payload.path("after"));
             case "d" -> delete(payload.path("before"));
             default -> {
-                // Ignora operações desconhecidas.
             }
         }
     }
@@ -63,11 +62,13 @@ public class DebeziumProductConsumer {
         String name = after.path("name").asText();
         BigDecimal price = new BigDecimal(after.path("price").asText());
 
-        // Mantém a cópia original na tabela products.
-        Product product = new Product(id, name, price);
-        productRepository.save(product);
+        ProductDocument product = new ProductDocument(
+                String.valueOf(id),
+                name,
+                price
+        );
 
-        // Cria ou atualiza a projeção de leitura.
+        productMongoRepository.save(product);
         productSummaryService.createOrUpdate(id, name, price);
     }
 
@@ -77,7 +78,7 @@ public class DebeziumProductConsumer {
         }
 
         Long id = before.path("id").asLong();
-        productRepository.deleteById(id);
+        productMongoRepository.deleteById(String.valueOf(id));
         productSummaryService.delete(id);
     }
 }

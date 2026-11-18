@@ -1,9 +1,8 @@
 package com.cqrs.readservice.service;
 
-import com.cqrs.readservice.entity.Product;
-import com.cqrs.readservice.repository.ProductRepository;
+import com.cqrs.readservice.document.ProductDocument;
+import com.cqrs.readservice.repository.ProductMongoRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -11,19 +10,18 @@ import java.util.Optional;
 @Service
 public class ProductQueryService {
 
-    private final ProductRepository productRepository;
+    private final ProductMongoRepository productMongoRepository;
 
-    public ProductQueryService(ProductRepository productRepository) {
-        this.productRepository = productRepository;
+    public ProductQueryService(
+            ProductMongoRepository productMongoRepository) {
+        this.productMongoRepository = productMongoRepository;
     }
 
-    @Transactional(readOnly = true)
-    public List<Product> findAll() {
-        return productRepository.findAll();
+    public List<ProductDocument> findAll() {
+        return productMongoRepository.findAll();
     }
 
-    @Transactional(readOnly = true)
-    public Optional<Product> findById(Long id) {
-        return productRepository.findById(id);
+    public Optional<ProductDocument> findById(Long id) {
+        return productMongoRepository.findById(String.valueOf(id));
     }
 }

@@ -1,44 +1,48 @@
 package com.cqrs.readservice.service;
 
+import com.cqrs.readservice.document.ProductSummaryDocument;
 import com.cqrs.readservice.dto.ProductSummaryResponse;
-import com.cqrs.readservice.entity.ProductSummary;
 import com.cqrs.readservice.enums.PriceCategory;
-import com.cqrs.readservice.repository.ProductSummaryRepository;
+import com.cqrs.readservice.repository.ProductSummaryMongoRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
 public class ProductSummaryQueryService {
 
-    private final ProductSummaryRepository productSummaryRepository;
+    private final ProductSummaryMongoRepository productSummaryMongoRepository;
 
     public ProductSummaryQueryService(
-            ProductSummaryRepository productSummaryRepository) {
-        this.productSummaryRepository = productSummaryRepository;
+            ProductSummaryMongoRepository productSummaryMongoRepository) {
+        this.productSummaryMongoRepository = productSummaryMongoRepository;
     }
 
-    @Transactional(readOnly = true)
     public List<ProductSummaryResponse> findAll(String category) {
-        List<ProductSummary> products;
+        List<ProductSummaryDocument> products;
+
         if (category == null || category.isBlank()) {
-            products = productSummaryRepository.findAllByOrderByIdAsc();
+            products = productSummaryMongoRepository.findAllByOrderByIdAsc();
         } else {
             PriceCategory priceCategory;
+
             try {
-                priceCategory = PriceCategory.valueOf(category.trim().toUpperCase());
+                priceCategory = PriceCategory.valueOf(
+                        category.trim().toUpperCase()
+                );
             } catch (IllegalArgumentException exception) {
                 throw new IllegalArgumentException(
                         "Categoria inválida. Utilize BUDGET, STANDARD ou PREMIUM."
                 );
             }
-            products = productSummaryRepository.findByPriceCategoryOrderByIdAsc(priceCategory.name());
+
+            products = productSummaryMongoRepository
+                    .findByPriceCategoryOrderByIdAsc(priceCategory.name());
         }
 
         return products.stream()
                 .map(product -> new ProductSummaryResponse(
-                        product.getId(),
+                        Long.valueOf(product.getId()),
                         product.getName(),
                         product.getPrice(),
                         product.getPriceCategory()
